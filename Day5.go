@@ -95,5 +95,5 @@ func main() {
 		out = string(append([]byte(out), i[0]))
 	}
 
-	fmt.Println("Part 1:", out)
+	fmt.Println("Part 2:", out)
 }
