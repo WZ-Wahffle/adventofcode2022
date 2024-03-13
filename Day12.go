@@ -18,39 +18,52 @@ type d12cacheObj struct {
 	steps int
 }
 
+type dir int
+
+const (
+	NONE  = 0
+	UP    = 1
+	DOWN  = 2
+	LEFT  = 3
+	RIGHT = 4
+)
+
 // true signifies that branch has been searched
 var cache = make(map[d12cacheObj]bool)
+var finished = -1
 
-func forkPaths(hMap [][]byte, steps int, pos, dest d12pos) {
-	if cache[d12cacheObj{pos.x, pos.y, steps}] == true {
+func forkPaths(hMap [][]byte, steps, initSteps int, pos, dest d12pos, prevDir dir) {
+	if cache[d12cacheObj{pos.x, pos.y, steps}] == true || finished != -1 {
 		return
 	}
+
 	if pos.x == dest.x && pos.y == dest.y {
-		fmt.Println("Found!", steps)
-		os.Exit(0)
+		finished = initSteps
+		return
 	}
 	if steps > 0 {
-		if pos.x > 0 && math.Abs(float64(hMap[pos.x-1][pos.y]-hMap[pos.x][pos.y])) <= 1 {
+		// cur = s next = q
+		if prevDir != RIGHT && pos.x > 0 && int(hMap[pos.x-1][pos.y])-int(hMap[pos.x][pos.y]) <= 1 {
 			if !cache[d12cacheObj{pos.x - 1, pos.y, steps - 1}] {
-				forkPaths(hMap, steps-1, d12pos{pos.x - 1, pos.y}, dest)
+				forkPaths(hMap, steps-1, initSteps, d12pos{pos.x - 1, pos.y}, dest, LEFT)
 				cache[d12cacheObj{pos.x - 1, pos.y, steps - 1}] = true
 			}
 		}
-		if pos.x < len(hMap)-1 && math.Abs(float64(hMap[pos.x+1][pos.y]-hMap[pos.x][pos.y])) <= 1 {
+		if prevDir != LEFT && pos.x < len(hMap)-1 && int(hMap[pos.x+1][pos.y])-int(hMap[pos.x][pos.y]) <= 1 {
 			if !cache[d12cacheObj{pos.x + 1, pos.y, steps - 1}] {
-				forkPaths(hMap, steps-1, d12pos{pos.x + 1, pos.y}, dest)
+				forkPaths(hMap, steps-1, initSteps, d12pos{pos.x + 1, pos.y}, dest, RIGHT)
 				cache[d12cacheObj{pos.x + 1, pos.y, steps - 1}] = true
 			}
 		}
-		if pos.y > 0 && math.Abs(float64(hMap[pos.x][pos.y-1]-hMap[pos.x][pos.y])) <= 1 {
+		if prevDir != DOWN && pos.y > 0 && int(hMap[pos.x][pos.y-1])-int(hMap[pos.x][pos.y]) <= 1 {
 			if !cache[d12cacheObj{pos.x, pos.y - 1, steps - 1}] {
-				forkPaths(hMap, steps-1, d12pos{pos.x, pos.y - 1}, dest)
+				forkPaths(hMap, steps-1, initSteps, d12pos{pos.x, pos.y - 1}, dest, UP)
 				cache[d12cacheObj{pos.x, pos.y - 1, steps - 1}] = true
 			}
 		}
-		if pos.y < len(hMap[0])-1 && math.Abs(float64(hMap[pos.y+1][pos.y]-hMap[pos.x][pos.y])) <= 1 {
+		if prevDir != UP && pos.y < len(hMap[0])-1 && int(hMap[pos.x][pos.y+1])-int(hMap[pos.x][pos.y]) <= 1 {
 			if !cache[d12cacheObj{pos.x, pos.y + 1, steps - 1}] {
-				forkPaths(hMap, steps-1, d12pos{pos.x, pos.y + 1}, dest)
+				forkPaths(hMap, steps-1, initSteps, d12pos{pos.x, pos.y + 1}, dest, DOWN)
 				cache[d12cacheObj{pos.x, pos.y + 1, steps - 1}] = true
 			}
 		}
@@ -61,7 +74,7 @@ func forkPaths(hMap [][]byte, steps int, pos, dest d12pos) {
 }
 
 func main() {
-	dat, _ := os.ReadFile("input/Test.txt")
+	dat, _ := os.ReadFile("input/Day12Input.txt")
 	file := bytes.Split(dat, []byte("\n"))
 
 	start, end := d12pos{0, 0}, d12pos{0, 0}
@@ -81,15 +94,33 @@ func main() {
 
 	maxDist := len(file) * len(file[0])
 	for i := range maxDist {
-		fmt.Println(i)
-		forkPaths(file, i, start, end)
-		if i == 31 {
-			for j := range cache {
-				fmt.Println(j.x, j.y)
-
-			}
+		forkPaths(file, i, i, start, end, NONE)
+		if finished != -1 {
+			break
 		}
-		cache = make(map[d12cacheObj]bool)
 	}
 
+	fmt.Println("Part 1:", finished)
+	finished = -1
+	minFinished := math.MaxInt
+
+	for i, ii := range file {
+		for j, jj := range ii {
+			if jj == 'a' {
+				cache = make(map[d12cacheObj]bool)
+				for k := range maxDist {
+					forkPaths(file, k, k, d12pos{i, j}, end, NONE)
+					if finished != -1 {
+						break
+					}
+				}
+				if finished != -1 {
+					minFinished = min(minFinished, finished)
+					finished = -1
+				}
+			}
+		}
+	}
+
+	fmt.Println("Part 2:", minFinished)
 }
