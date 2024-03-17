@@ -18,8 +18,10 @@ func main() {
 	file := strings.Split(string(dat), "\n")
 	ranges := make(map[d15Point]int)
 	beacons := make([]d15Point, 0)
+	positives := make([]int, 0)
+	negatives := make([]int, 0)
 
-	p1Line := 2000000
+	p1Line := 10
 	minX, maxX := math.MaxInt32, 0
 
 	for _, i := range file {
@@ -31,21 +33,37 @@ func main() {
 		maxX = max(maxX, sx+dx)
 		ranges[d15Point{sx, sy}] = distance
 		beacons = append(beacons, d15Point{dx, dy})
+		positives = append(positives, sy-sx-distance-1)
+		negatives = append(negatives, sy+sx-distance-1)
 	}
 
 	cannot := 0
 	for i := minX; i < maxX; i++ {
-		found := false
 		for j, jj := range ranges {
 			if int(math.Abs(float64(i-j.x))+math.Abs(float64(p1Line-j.y))) <= jj && !slices.Contains(beacons, d15Point{i, p1Line}) {
 				cannot++
-				found = true
 				break
 			}
 		}
-		if !found && i >= 0 && i <= 4000000 {
-			fmt.Println("Part 2:", i, p1Line, int64(i)*int64(4000000)+int64(p1Line))
-		}
 	}
 	fmt.Println("Part 1:", cannot)
+
+	for _, i := range positives {
+		for _, j := range negatives {
+			valid := true
+			interX := (j - i) / 2
+			interY := (j + i) / 2
+			for k, kk := range ranges {
+				if int(math.Abs(float64(interX-k.x))+math.Abs(float64(interY-k.y))) <= kk || slices.Contains(beacons, d15Point{interX, interY}) {
+					valid = false
+					break
+				}
+			}
+
+			if valid && interX >= 0 && interX <= 4000000 && interY >= 0 && interY <= 4000000 {
+				fmt.Println("Part 2:", int64(interX)*int64(4000000)+int64(interY))
+				os.Exit(0)
+			}
+		}
+	}
 }
